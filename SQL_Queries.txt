@@ -1,0 +1,87 @@
+CREATE DATABASE CHURN_DB;
+USE CHURN_DB;
+
+SELECT * FROM cleaned_telco_churn;
+SELECT * FROM cleaned_telco_churn LIMIT 10;
+
+-- Check total number of customers
+SELECT COUNT(*) AS total_customers
+FROM cleaned_telco_churn;
+
+-- Churn Count and Percentage
+SELECT 
+    Churn,
+    COUNT(*) AS customers,
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM cleaned_telco_churn), 2) AS churn_rate
+FROM cleaned_telco_churn
+GROUP BY Churn;
+
+-- Churn by Contract Type
+SELECT 
+    Contract,
+    Churn,
+    COUNT(*) AS total,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(PARTITION BY Contract), 2) AS churn_percentage
+FROM cleaned_telco_churn
+GROUP BY Contract, Churn
+ORDER BY Contract, Churn;
+
+-- Churn by Payment Method
+SELECT 
+    PaymentMethod,
+    Churn,
+    COUNT(*) AS total,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(PARTITION BY PaymentMethod), 2) AS churn_percentage
+FROM cleaned_telco_churn
+GROUP BY PaymentMethod, Churn
+ORDER BY churn_percentage DESC;
+
+-- Average Charges for Churn vs Non-Churn
+SELECT 
+    Churn,
+    ROUND(AVG(MonthlyCharges),2) AS avg_monthly_charges,
+    ROUND(AVG(TotalCharges),2) AS avg_total_charges,
+    ROUND(AVG(tenure),2) AS avg_tenure
+FROM cleaned_telco_churn
+GROUP BY Churn;
+
+-- Churn by Tenure Group
+SELECT 
+    tenure_group,
+    Churn,
+    COUNT(*),
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(PARTITION BY tenure_group), 2) AS churn_percentage
+FROM cleaned_telco_churn
+GROUP BY tenure_group, Churn
+ORDER BY tenure_group;
+
+-- Churn by Internet Service Type
+SELECT 
+    InternetService,
+    Churn,
+    COUNT(*) AS total,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(PARTITION BY InternetService), 2) AS churn_rate
+FROM cleaned_telco_churn
+GROUP BY InternetService, Churn
+ORDER BY churn_rate DESC;
+
+-- Churn by Support Services (to see patterns)
+SELECT 
+    TechSupport,
+    Churn,
+    COUNT(*) AS total,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(PARTITION BY TechSupport), 2) AS churn_rate
+FROM cleaned_telco_churn
+GROUP BY TechSupport, Churn
+ORDER BY churn_rate DESC;
+
+-- Find Top 10 High-Risk Customer Profiles
+SELECT 
+    gender, InternetService, Contract, PaymentMethod,
+    ROUND(AVG(MonthlyCharges),2) AS avg_charge,
+    ROUND(AVG(tenure),1) AS avg_tenure,
+    ROUND(SUM(CASE WHEN Churn='Yes' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS churn_rate
+FROM cleaned_telco_churn
+GROUP BY gender, InternetService, Contract, PaymentMethod
+ORDER BY churn_rate DESC
+LIMIT 10;
